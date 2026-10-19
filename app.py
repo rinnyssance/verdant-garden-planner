@@ -100,7 +100,7 @@ with schedule_tab:
         st.info("No tasks match these filters. Add a pet and a task, or choose another date.")
     for pet, task in visible:
         with st.container(border=True):
-            details, action = st.columns([5, 1])
+            details, action = st.columns([4, 2])
             with details:
                 st.subheader(f"{task.time}–{task.end_time} · {task.description}")
                 st.write(f"{pet.name} · {task.duration_minutes} min · {task.priority.upper()} priority · {task.frequency}")

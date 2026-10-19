@@ -1,0 +1,5 @@
+Command: python -m pytest -q
+Environment: Windows, Python 3.12, Streamlit 1.66.0, pytest 9.1.1
+
+.............................                                            [100%]
+29 passed in 26.02s

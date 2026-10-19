@@ -1,0 +1,48 @@
+classDiagram
+    Owner "1" *-- "0..*" Pet : owns
+    Pet "1" *-- "0..*" Task : occurrences
+    Scheduler --> Owner : get_all_tasks
+    Scheduler --> Plan : creates
+    Plan --> Pet : references
+    Plan --> Task : selects or skips
+    class Owner {
+        +str name
+        +list~Pet~ pets
+        +add_pet(pet) None
+        +get_all_tasks() list
+    }
+    class Pet {
+        +str id
+        +str name
+        +str species
+        +list~Task~ tasks
+        +add_task(task) None
+    }
+    class Task {
+        +str id
+        +str description
+        +str time
+        +date due_date
+        +int duration_minutes
+        +str priority
+        +str frequency
+        +bool completed
+        +str end_time
+        +mark_complete(completed_on) Task_or_None
+    }
+    class Scheduler {
+        +Owner owner
+        +filter_tasks(pet_id, completed, on_date) list
+        +sort_by_time(tasks) list
+        +sort_by_priority(tasks) list
+        +overlaps(first, second) bool
+        +detect_conflicts(on_date) list
+        +mark_task_complete(pet_id, task_id, completed_on) Task_or_None
+        +update_task(pet_id, task_id, changes) Task
+        +build_plan(on_date, available_minutes, start_time, end_time) Plan
+    }
+    class Plan {
+        +list selected
+        +list skipped
+        +int total_minutes
+    }

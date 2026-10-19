@@ -1,40 +1,23 @@
 # AI Interactions Log
 
-> **Stretch features only.** Only fill in the sections that apply to stretch features you attempted. If you did not attempt a stretch feature, leave its section blank or delete it. This file is not required for the core project.
-
----
-
 ## Agent Workflow (SF7)
 
-> Document your experience using an AI agent (e.g., Cursor Agent, Claude, Copilot) to make multi-step changes autonomously.
+### Task given to the agent
 
-**What task did you give the agent?**
+The user supplied `https://github.com/codepath/ai110-module2show-pawpal-starter` and `AI Engineering Project 2.pdf`, selected **Implement the project requirements**, and followed up with **go**.
 
-<!-- Describe the goal you asked the agent to accomplish -->
+### What the agent did
 
-**What did the agent do?**
+Codex inspected the repository and rendered the scanned PDF pages to read the requirements. It implemented `pawpal_system.py`, a CLI in `main.py`, the Streamlit interface in `app.py`, backend and UI tests, a theme, draft/final Mermaid UML, and project documentation. It used the terminal to run the CLI and pytest. The extra planning algorithm ranks tasks by priority and selects non-overlapping tasks within availability and a care-time budget.
 
-<!-- List the steps the agent took (files edited, commands run, etc.) -->
+### Verification and revisions
 
-**What did you have to verify or fix manually?**
+The agent reviewed interval boundaries and repeat completion behavior, revised conflict explanations to include insertion-order ties, and allowed the backend's full-day availability window to end at midnight. Actual test output is saved in `test-results.txt`. UI tests check real Streamlit forms and state transitions.
 
-<!-- Describe anything the agent got wrong or that required human review -->
+### Human review
 
----
+No manual corrections or personal learning experiences are attributed to the user. The student should run the app, review the tests and scheduling tradeoffs, and add their own observations to `reflection.md` before submitting.
 
-## Prompt Comparison (SF11)
+## Prompt Comparison
 
-> Compare two different prompts (or two different models) on the same task.
-
-| | Option A | Option B |
-|-|----------|----------|
-| **Model / tool used** | | |
-| **Prompt** | | |
-| **Response summary** | | |
-| **What was useful** | | |
-| **Problems noticed** | | |
-| **Decision** | | |
-
-**Which approach did you use in your final implementation and why?**
-
-<!-- Your conclusion -->
+Not attempted. No second model or alternate-prompt experiment is claimed.
