@@ -2,6 +2,12 @@
 
 A pet care planner built with Python dataclasses and Streamlit for CodePath AI110 Project 2. Manage multiple pets, schedule routines, complete tasks, and create a daily plan that fits your available time.
 
+## App preview
+
+![PawPal+ demo showing the daily schedule, conflict warnings, and task entry form](assets/pawpal-demo.gif)
+
+The animated preview cycles through the daily schedule and task entry screens using the sample household.
+
 ## Run locally
 
 Use Python 3.10 or newer. From this folder:
@@ -115,4 +121,4 @@ Test results are also recorded in [test-results.txt](test-results.txt). Confiden
 
 ## Project handoff
 
-The implementation and local commits are provided in this folder. Before submitting, review the code and personalize the marked reflection prompts, publish to your own public GitHub repository, and submit that repository through the course portal. Local implementation does not constitute course submission.
+The implementation is published in [this GitHub repository](https://github.com/rinnyssance/ai110-module2show-pawpal-starter). Before submitting, review the code, personalize the marked reflection prompts, and submit the repository through the course portal. Publishing the code does not constitute course submission.
