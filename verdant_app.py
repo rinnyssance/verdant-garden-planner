@@ -7,10 +7,12 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import date
 
 import streamlit as st
 
 from verdant.persistence import SQLiteRepository
+from verdant.services.demo import load_demo
 from verdant.services.fakes import FailingWeatherProvider
 from verdant.services.garden_service import LOCAL_OPERATOR_ID, GardenService
 from verdant.services.weather import OpenMeteoGeocoder, OpenMeteoProvider, WeatherService
@@ -46,7 +48,15 @@ show_notice()
 
 gardens = service.gardens(USER)
 if not gardens:
-    st.subheader("Set up your gardens")
+    st.subheader("Take a quick tour")
+    st.write("Load two sample gardens (Richmond and Norfolk, Virginia) with seeds, spaces, plants, tasks and a "
+             "journal entry, then open **Dashboard → Check weather & advice** to see live, explained advice.")
+    if st.button("Load sample gardens", type="primary", key="vd_demo"):
+        made = load_demo(service, USER, date.today())
+        if made:
+            st.session_state["vd_garden_next"] = made[0].id
+        notify("Sample gardens loaded. Try Dashboard → Check weather & advice.")
+    st.subheader("Or set up your own gardens")
     st.write("Each garden keeps its own seeds, spaces, plants, tasks and forecast. "
              "You can manage a family member's garden without them needing an account.")
     with st.form("vd_onboarding"):

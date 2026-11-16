@@ -62,11 +62,13 @@ python -m streamlit run verdant_app.py
 
 macOS/Linux: `source .venv/bin/activate`. No API key is needed: Open-Meteo is free for non-commercial use. To run with no network at all, set `VERDANT_WEATHER=offline` (weather then shows as unavailable; nothing is invented). Other settings are in [.env.example](.env.example). Data is stored in `data/verdant.db` (git-ignored). The original PawPal+ app still runs with `python -m streamlit run app.py`.
 
-**First run:** create your gardens → Settings → search your city → *Use this location* → (optionally) import the packet list into your own garden → add growing spaces → start plantings from the Seed Library → Dashboard → *Check weather & advice*.
+**Quick look:** click **Load sample gardens**, then Dashboard → *Check weather & advice*. **First run with your own data:** create your gardens → Settings → search your city → *Use this location* → (optionally) import the packet list into your own garden → add growing spaces → start plantings from the Seed Library → Dashboard → *Check weather & advice*.
 
 ## Deploy (Streamlit Community Cloud)
 
 1. Sign in at [share.streamlit.io](https://share.streamlit.io) with GitHub → **Create app** → *Deploy a public app from GitHub*.
+Live app: https://verdant-garden-planner.streamlit.app
+
 2. Repository `rinnyssance/verdant-garden-planner`, branch `main`, main file `verdant_app.py`. Under *Advanced settings* choose Python 3.10 or newer.
 3. After it starts, open the app's **Settings → Sharing** and make it **private (invite only)** if you will store real garden data.
 
@@ -141,10 +143,10 @@ In the running app with the live Open-Meteo forecast for a Richmond, VA test loc
 
 ```text
 python -m pytest -q
-80 passed
+81 passed
 ```
 
-29 original PawPal+ tests (unchanged) + 51 new tests: domain validation, garden scope in the adapter, recurrence history, SQLite reload/rollback/isolation, permissions (non-members, viewers, invited editor), seed import (one garden, flags, idempotent, nothing invented), weather (cache, expiry, outage, stale, per-garden), rules (each advisory, negatives, boundaries, determinism, accept-once, dismiss-remembered, cross-garden accept blocked), photo validation, and Streamlit AppTest flows. The evaluation script adds 12 scenario checks (12/12).
+29 original PawPal+ tests (unchanged) + 52 new tests: domain validation, garden scope in the adapter, recurrence history, SQLite reload/rollback/isolation, permissions (non-members, viewers, invited editor), seed import (one garden, flags, idempotent, nothing invented), weather (cache, expiry, outage, stale, per-garden), rules (each advisory, negatives, boundaries, determinism, accept-once, dismiss-remembered, cross-garden accept blocked), photo validation, and Streamlit AppTest flows. The evaluation script adds 12 scenario checks (12/12).
 
 What worked: reusing PawPal rules kept recurrence and conflicts correct with no new scheduling code. What didn't at first: clicking through the real app exposed three bugs the unit tests missed (tabs resetting after each action, a cached repository rejecting hot-reloaded classes, and a CSS rule that broke icon fonts). Lesson: UI tests that render everything at once can hide navigation problems.
 

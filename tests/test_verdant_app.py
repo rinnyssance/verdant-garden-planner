@@ -122,3 +122,18 @@ def test_offline_advice_is_explicit_and_accept_adds_task(env):
     click(app, "Add suggested task")
     assert any("Added to calendar" in s.value for s in app.success)
     assert not [m for m in app.markdown if "Add grow-light details" in m.value]
+
+
+def test_sample_gardens_button_for_visitors(env):
+    app = start()
+    click(app, "Load sample gardens")
+    names = [g.display_name for g in gardens(env)]
+    assert names == ["My Garden (sample)", "Mom's Garden (sample)"]
+    assert any("Sample gardens loaded" in s.value for s in app.success)
+    go(app, "My Plants")
+    assert any("Sweet basil" in m.value for m in app.markdown)
+    # Mom's sample garden has its own task and no seeds.
+    moms = [g.id for g in gardens(env)][1]
+    app.session_state["vd_garden"] = moms
+    go(app, "Seed Library")
+    assert any("seed library is empty" in i.value for i in app.info)
