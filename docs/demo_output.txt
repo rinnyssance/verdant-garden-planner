@@ -1,0 +1,50 @@
+1) Import the packet list into My Garden only
+   {'added': 26, 'skipped': 0}
+   My Garden seeds: 26 (8 need review, e.g. Parsley 'Italian / plain')
+   Mom's Garden seeds: 0   plantings anywhere: 0
+
+2) Spaces and a planting (inventory stays separate)
+   Active plantings: 2; seed records still: 26
+
+3) Recurring care through the original PawPal+ scheduler
+   WARNING: 2026-11-16: Sunny raised bed / Water raised bed (08:00-08:15) overlaps Sweet basil / Mist basil (08:10-08:20).
+   Completed 'Water raised bed' -> next occurrence 2026-11-17 08:00
+
+4) Weather + advisory rules (scripted forecast: lows 45, 31, 40 F; 80% rain today)
+   [action] needs_adjustment  Check cold protection for Sweet basil
+   [info  ] needs_adjustment  Check soil moisture in Sunny raised bed before watering
+   [info  ] insufficient_data Add grow-light details for Seed shelf
+
+   Frost advisory as JSON (response contract):
+   {
+     "garden_id": "<id>",
+     "planting_id": "<id>",
+     "suitability": "needs_adjustment",
+     "severity": "action",
+     "title": "Check cold protection for Sweet basil",
+     "explanation": "The forecast low for Tue Nov 17 is 31°F. Sweet basil is listed as frost-tender and is in 'Sunny raised bed' (outdoor), which is exposed to outdoor temperatures.",
+     "evidence": [
+       {
+         "type": "forecast_low",
+         "value": 31,
+         "unit": "F",
+         "for_date": "2026-11-17",
+         "source": "Scripted test forecast",
+         "fetched_at": "2026-11-16T12:00:00+00:00",
+         "origin": "forecast"
+       }
+     ],
+     "unknowns": [
+       "actual plant-level temperature",
+       "microclimate around the plant"
+     ],
+     "suggested_task": {
+       "description": "Check cold protection for Sweet basil",
+       "priority": "high"
+     },
+     "requires_user_approval": true
+   }
+
+5) Nothing changes until the user decides
+   Tasks before accept: 3; after accepting twice: 4 (new: 'Check cold protection for Sweet basil', source=suggested)
+   Mom's Garden tasks: 0; advice: 0

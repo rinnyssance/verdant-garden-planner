@@ -1,124 +1,157 @@
-# PawPal+
+# 🌿 Verdant — family garden planner
 
-A pet care planner built with Python dataclasses and Streamlit for CodePath AI110 Project 2. Manage multiple pets, schedule routines, complete tasks, and create a daily plan that fits your available time.
+*Grow with knowledge. Care with confidence.*
 
-## App preview
+Verdant is a location-aware garden planner for one operator who manages several gardens (for example, their own garden and their mother's). It keeps a real seed inventory, growing spaces, plantings, recurring care tasks, a field journal, cached weather forecasts, and **explainable, evidence-backed planting advice** that never changes your schedule without your approval.
 
-![PawPal+ demo showing the daily schedule, conflict warnings, and task entry form](assets/pawpal-demo.gif)
+## Base project: PawPal+ (AI110 Module 2)
 
-The animated preview cycles through the daily schedule and task entry screens using the sample household.
+Verdant extends **PawPal+**, my Module 2 pet-care planner. PawPal+ modelled an owner, pets and dated tasks with high/medium/low priority, once/daily/weekly recurrence, completion history, conflict (overlap) warnings and a greedy plan that fits tasks into available minutes and hours, with a Streamlit UI and 29 tests. Its original README is kept at [docs/pawpal_original_README.md](docs/pawpal_original_README.md). `pawpal_system.py`, `app.py`, `main.py` and the original tests are **unchanged**; Verdant reuses the scheduler through an adapter.
 
-## Run locally
+## What the AI part does
 
-Use Python 3.10 or newer. From this folder:
+Verdant's AI feature is a **retrieval-grounded advisory agent with a reliability harness**:
+
+1. **Retrieve** evidence for one garden: the cached forecast (Open-Meteo), the growing space (indoor/outdoor/covered, light source), each planting's stage, and a cited crop reference table.
+2. **Reason** with deterministic rules: frost risk for frost-tender crops in exposed spaces; rain → *check soil before watering* (outdoor only); grow light with unknown intensity → *insufficient data*; missing or stale weather → *advice paused*.
+3. **Explain**: every advisory stores its evidence (value, unit, source, fetch time, origin), unknowns, limitations and expiry.
+4. **Human in the loop**: the user accepts (creates exactly one task) or dismisses (not raised again). Nothing is created, moved or completed automatically.
+5. **Verify**: 51 new automated tests plus a 12-scenario evaluation script with guardrail checks.
+
+Rules come before generative AI on purpose: garden advice must not invent agronomic facts. When data is missing, Verdant says `insufficient_data` instead of guessing.
+
+## Architecture
+
+Source: [diagrams/architecture.mmd](diagrams/architecture.mmd). Migration plan: [docs/verdant_migration_plan.md](docs/verdant_migration_plan.md).
+
+```mermaid
+flowchart LR
+    UI[Streamlit UI] --> S[GardenService<br/>membership check]
+    S --> R[(SQLite)]
+    S --> A[PawPal adapter] --> P[pawpal_system.py<br/>unchanged]
+    W[WeatherService + cache] --> E[Rule engine]
+    C[(Cited crop reference)] --> E
+    R --> E
+    E --> Rec[Advice with evidence,<br/>unknowns, limits]
+    Rec --> H{User: accept / dismiss}
+    H --> S
+```
+
+| Layer | Files | Responsibility |
+| --- | --- | --- |
+| Domain | `verdant/domain/` | Validated dataclasses: Garden, GrowingSpace, SeedVariety, SeedInventoryItem, Planting, GardenTask, Observation, WeatherSnapshot, Recommendation |
+| Scheduling | `verdant/scheduling/pawpal_adapter.py` | One garden → one PawPal `Owner`; GardenTask ↔ PawPal `Task` with the same ID. Validation, recurrence, overlaps and plans come from the original code |
+| Persistence | `verdant/persistence/` | `Repository` interface, SQLite implementation, SQL migration `001_initial.sql` |
+| Services | `verdant/services/` | `GardenService` (all reads/writes, access checks, garden scope), seed import, weather, rule engine, photo validation |
+| UI | `verdant_app.py`, `verdant/ui/` | Dashboard, Seed Library, My Plants, Garden Spaces, Calendar, Field Journal, Settings; persistent garden switcher |
+
+## Setup
+
+Python 3.10+. From the project folder:
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe main.py
-.\.venv\Scripts\python.exe -m pytest -q
-.\.venv\Scripts\python.exe -m streamlit run app.py
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python -m pytest -q
+python verdant_demo.py
+python scripts/evaluate_recommendations.py
+python -m streamlit run verdant_app.py
 ```
 
-On macOS/Linux, replace `.\.venv\Scripts\python.exe` with `.venv/bin/python`.
-No API key or external service is needed. Open the local URL printed by Streamlit.
+macOS/Linux: `source .venv/bin/activate`. No API key is needed: Open-Meteo is free for non-commercial use. To run with no network at all, set `VERDANT_WEATHER=offline` (weather then shows as unavailable; nothing is invented). Other settings are in [.env.example](.env.example). Data is stored in `data/verdant.db` (git-ignored). The original PawPal+ app still runs with `python -m streamlit run app.py`.
 
-## Features and implementation
+**First run:** create your gardens → Settings → search your city → *Use this location* → (optionally) import the packet list into your own garden → add growing spaces → start plantings from the Seed Library → Dashboard → *Check weather & advice*.
 
-- Add an owner and multiple pets. Each pet owns an independent task list.
-- Add and edit dated tasks with time, duration, priority, and once/daily/weekly recurrence.
-- View tasks chronologically and filter by pet, date, or completion status.
-- Complete tasks while preserving their history. Daily and weekly tasks produce a new occurrence automatically.
-- Warn about overlapping tasks across the entire household.
-- Generate a priority-based plan within a care-time budget and preferred hours, with explanations for skipped tasks.
-- Keep data across Streamlit widget interactions using session state.
+## Sample interactions
 
-`pawpal_system.py` is independent of Streamlit. `Owner.get_all_tasks()` is the single source used by `Scheduler`, so scheduling always considers every pet. `Task` validates values and creates its next occurrence on completion; `Scheduler.mark_task_complete()` attaches that occurrence to the correct pet. `Plan` groups chosen tasks and skipped-task explanations. `main.py` demonstrates the backend before the UI.
+All three are reproducible from the commands above. Full output: [docs/demo_output.txt](docs/demo_output.txt), [docs/evaluation_results.txt](docs/evaluation_results.txt).
 
-### Architecture
-
-- [Initial UML](diagrams/uml_draft.mmd)
-- [Final UML](diagrams/uml_final.mmd)
-- [Reflection and personal review prompts](reflection.md)
-- [AI interaction record](ai_interactions.md)
-
-```mermaid
-classDiagram
-    Owner "1" *-- "0..*" Pet
-    Pet "1" *-- "0..*" Task
-    Scheduler --> Owner : gets all tasks
-    Scheduler --> Plan : creates
-    Plan --> Task : selects or skips
-```
-
-## Smarter Scheduling
-
-| Behavior | Method | Rule |
-| --- | --- | --- |
-| Chronological ordering | `Scheduler.sort_by_time()` | Date then 24-hour time; stable ties; original lists unchanged |
-| Pet/status/date filtering | `Scheduler.filter_tasks()` | Combine optional filters; pet IDs distinguish pets with identical names |
-| Priority ordering | `Scheduler.sort_by_priority()` | High, medium, low; then date/time; insertion order resolves exact ties |
-| Conflict warnings | `Scheduler.detect_conflicts()` | Any overlapping pending intervals on the same date, across pets; touching intervals are allowed |
-| Recurrence | `Task.mark_complete()` and `Scheduler.mark_task_complete()` | Daily adds 1 day, weekly adds 7 days; new ID and pending status; repeated completion does nothing |
-| Constrained planning | `Scheduler.build_plan()` | Greedy priority selection within available hours and total care minutes; exclude overlaps; display selected tasks chronologically |
-| Safe editing | `Scheduler.update_task()` | Validate a replacement before changing stored state; preserve task ID; completed history is read-only |
-
-Recurrence uses the later of the occurrence's due date and its completion date. A late completion schedules the next daily task tomorrow, rather than adding another overdue task. Early completion does not pull a future routine backward. The CLI and tests supply explicit completion dates for reproducibility; the UI uses the computer's local date.
-
-Conflict detection is O(n²), which is straightforward and adequate for a small household. The planner is also O(n²) in the worst case. It is a greedy heuristic, not an optimizer: it can choose one long high-priority task instead of several shorter tasks. Requested times remain fixed, and skipped tasks remain pending. Owners must resolve conflicts themselves. A plan is not a recommendation to omit necessary care.
-
-## Demo Walkthrough
-
-1. Start the app. Choose **Load demo household** to see Mochi and Luna, or add your own pet in the sidebar.
-2. Open **Manage tasks**, choose a pet, enter a description and time, and select a priority and recurrence. Choose **Add task**.
-3. Open **Daily schedule**. Tasks appear in chronological order. Select a pet or status to filter the list. The demo intentionally includes two tasks at 08:00 so you can see a warning.
-4. Under **Manage tasks**, expand a pending task, adjust its time or duration, and save. The schedule and warnings update.
-5. Choose **Complete** on a daily task. The original stays in completed history; selecting tomorrow shows the new pending occurrence.
-6. Open **Build a plan**. With demo data, set 45 minutes and availability from 07:00 to 20:00. Generate the schedule to see selected tasks and explanations for skipped tasks.
-
-Session data survives interactions but is not saved to disk. Reloading or closing the browser session can reset the household. JSON persistence is not implemented. Tasks cannot cross midnight; split an overnight activity into separate tasks. The backend supports an availability end of `24:00`; the UI time picker stops at `23:59`. There is no background recurrence generation: the next occurrence appears on completion.
-
-## Sample Output
-
-Actual output from `python main.py` (fixed demonstration date):
+**1. Two gardens stay separate; owning seeds ≠ growing them** (`python verdant_demo.py`)
 
 ```text
-Today's Schedule - 2026-10-18 (fixed demo date)
-  08:00-08:30 | Mochi | Morning walk  | high
-  08:00-08:10 | Luna  | Breakfast     | high
-  09:00-09:15 | Luna  | Brush coat    | low
-  18:00-18:30 | Mochi | Evening walk  | medium
-
-Conflict warnings:
-  WARNING: 2026-10-18: Mochi / Morning walk (08:00-08:30) overlaps Luna / Breakfast (08:00-08:10).
-
-Luna's pending tasks:
-  08:00 Breakfast
-  09:00 Brush coat
-
-Priority plan - 45/45 minutes:
-  08:00 Mochi: Morning walk (high)
-  09:00 Luna: Brush coat (low)
-  SKIPPED Luna: Breakfast - Overlaps a task selected first by priority, time, or insertion order.
-  SKIPPED Mochi: Evening walk - Does not fit the remaining care-time budget.
-
-Completed Morning walk; next occurrence: 2026-10-19 08:00
-Completed tasks: 1
+1) Import the packet list into My Garden only
+   {'added': 26, 'skipped': 0}
+   My Garden seeds: 26 (8 need review, e.g. Parsley 'Italian / plain')
+   Mom's Garden seeds: 0   plantings anywhere: 0
 ```
 
-## Testing PawPal+
-
-Run `python -m pytest -q`. Backend tests cover completion, independent task collections, multiple pets, chronological sorting, combined filtering, daily/weekly recurrence, repeated completion, month boundaries, late completion, exact and partial overlaps, touching intervals, empty households, budgets, availability, invalid values, safe edits, and midnight boundaries. Streamlit tests exercise adding a pet and task, editing, filtering, planning, completion, validation, and session-state persistence.
-
-Actual successful test output (Windows, Python 3.12, Streamlit 1.66.0, pytest 9.1.1):
+**2. Advice with evidence and approval** (scripted forecast: lows 45, 31, 40 °F; 80 % rain today)
 
 ```text
-.............................                                            [100%]
-29 passed in 26.02s
+4) Weather + advisory rules (scripted forecast: lows 45, 31, 40 F; 80% rain today)
+   [action] needs_adjustment  Check cold protection for Sweet basil
+   [info  ] needs_adjustment  Check soil moisture in Sunny raised bed before watering
+   [info  ] insufficient_data Add grow-light details for Seed shelf
+...
+5) Nothing changes until the user decides
+   Tasks before accept: 3; after accepting twice: 4 (new: 'Check cold protection for Sweet basil', source=suggested)
+   Mom's Garden tasks: 0; advice: 0
 ```
 
-Test results are also recorded in [test-results.txt](test-results.txt). Confidence: **4/5** for the documented scope. Automated checks cover the primary workflows; browser usability across devices, large households, persistent storage, and time-zone transitions remain future work.
+Kale in the same bed gets no frost alert (frost-tolerant), and the indoor shelf gets no rain advice. The frost advisory as JSON:
 
-## Project handoff
+```json
+{
+  "suitability": "needs_adjustment", "severity": "action",
+  "title": "Check cold protection for Sweet basil",
+  "explanation": "The forecast low for Tue Nov 17 is 31°F. Sweet basil is listed as frost-tender and is in 'Sunny raised bed' (outdoor), which is exposed to outdoor temperatures.",
+  "evidence": [{"type": "forecast_low", "value": 31, "unit": "F", "for_date": "2026-11-17",
+                "source": "Scripted test forecast", "fetched_at": "2026-11-16T12:00:00+00:00", "origin": "forecast"}],
+  "unknowns": ["actual plant-level temperature", "microclimate around the plant"],
+  "suggested_task": {"description": "Check cold protection for Sweet basil", "priority": "high"},
+  "requires_user_approval": true
+}
+```
 
-The implementation is published in [this GitHub repository](https://github.com/rinnyssance/ai110-module2show-pawpal-starter). Before submitting, review the code, personalize the marked reflection prompts, and submit the repository through the course portal. Publishing the code does not constitute course submission.
+**3. Guardrails under bad or missing data** (`python scripts/evaluate_recommendations.py`)
+
+```text
+ 7. PASS  Unknown sensitivity (rosemary), low 30F        -> frost_risk/info/insufficient_data
+10. PASS  Rain 80% in a greenhouse                       -> no advice
+11. PASS  Grow light without PPFD                        -> grow_light/info/insufficient_data
+12. PASS  Weather outage with outdoor basil              -> data_quality/watch/insufficient_data
+
+Summary: 12/12 scenarios matched expected advice; 12/12 passed all guardrails (deterministic, no automatic task changes, evidence present, unknowns stated).
+```
+
+In the running app with the live Open-Meteo forecast for a Richmond, VA test location on 2026-11-16 (low 35 °F), the Dashboard showed one *Watch* advisory for outdoor basil, none for kale or the indoor microgreens, and a grow-light *insufficient data* item.
+
+## Design decisions and trade-offs
+
+- **Adapter over rewrite.** Garden tasks run through the unmodified PawPal scheduler, so 29 existing tests still guard the core rules. Cost: plantings/spaces are mapped onto PawPal's `Pet` grouping, which is slightly awkward internally.
+- **Garden = PawPal owner.** Overlap warnings and plans are computed per garden, never across gardens.
+- **Authorization in the service layer now, RLS later.** Every call checks membership (owner/editor/viewer); unknown and forbidden gardens return the same error. Supabase Auth + row-level security is planned (Phase 3); today there is one local operator and no sign-in.
+- **SQLite first.** Durable, zero-setup, testable. The `Repository` interface allows a Supabase implementation later.
+- **Rules, not an LLM, decide.** Deterministic rules are testable and traceable. An optional LLM could later rephrase explanations but must not add facts.
+- **Conservative thresholds, stated as such.** Frost watch ≤ 36 °F, action ≤ 32 °F for tender crops; rain ≥ 60 % or ≥ 0.25 in. These are advisory defaults, not validated limits, and each advisory says so.
+- **Stale data is shown, not used.** If a refresh fails, the old forecast is displayed with its timestamp but advisories pause.
+- **`st.segmented_control` instead of `st.tabs`** so the app stays on the same screen after each save (found while testing the running app).
+
+## Testing summary
+
+```text
+python -m pytest -q
+80 passed
+```
+
+29 original PawPal+ tests (unchanged) + 51 new tests: domain validation, garden scope in the adapter, recurrence history, SQLite reload/rollback/isolation, permissions (non-members, viewers, invited editor), seed import (one garden, flags, idempotent, nothing invented), weather (cache, expiry, outage, stale, per-garden), rules (each advisory, negatives, boundaries, determinism, accept-once, dismiss-remembered, cross-garden accept blocked), photo validation, and Streamlit AppTest flows. The evaluation script adds 12 scenario checks (12/12).
+
+What worked: reusing PawPal rules kept recurrence and conflicts correct with no new scheduling code. What didn't at first: clicking through the real app exposed three bugs the unit tests missed (tabs resetting after each action, a cached repository rejecting hot-reloaded classes, and a CSS rule that broke icon fonts). Lesson: UI tests that render everything at once can hide navigation problems.
+
+Not yet verified: real sign-in/RLS (not built), USDA zone lookup, behaviour across time-zone/DST changes, and screen-reader use.
+
+## Data sources and attribution
+
+- Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0). Verify current terms before commercial use.
+- Crop frost-sensitivity classes follow the warm-/cool-season split published by extension services; citation: Virginia Cooperative Extension, *Vegetable Planting Guide and Recommended Planting Dates* (426-331). The table is marked `needs_review` until checked against that publication.
+- Seed list transcribed from the operator's packet photos; uncertain names are flagged.
+
+## Roadmap
+
+Phase 2 remainder: *Can I plant now?* with cited frost-window data. Phase 3: Supabase Auth/Postgres/RLS, invitation for Mom, private photo storage. Phase 4: journal charts, NASA POWER history, verified plant-reference enrichment.
+
+## Reflection
+
+Responsible-AI reflection, limitations and AI-collaboration notes are in [model_card.md](model_card.md).

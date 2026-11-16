@@ -1,0 +1,36 @@
+flowchart TD
+    %% Verdant system architecture: input -> process -> output, with human and testing checkpoints
+    User([Garden operator]) -->|selects garden, enters seeds, spaces, plantings, tasks, observations| UI[Streamlit UI<br/>verdant_app.py + verdant/ui]
+    UI --> Service[GardenService<br/>membership check on every call]
+    Service --> Access{Access check<br/>owner / editor / viewer}
+    Access -->|denied| Denied[AccessDenied shown to user]
+    Access -->|allowed, scoped to one garden| Repo[(SQLite repository<br/>versioned migrations)]
+
+    Service --> Adapter[PawPal adapter<br/>one garden = one PawPal Owner]
+    Adapter --> PawPal[pawpal_system.py<br/>original, unmodified scheduler]
+    PawPal -->|validation, recurrence, overlaps, time-budget plan| Adapter
+
+    subgraph Retrieval [Evidence retrieval]
+        Weather[WeatherService<br/>cache + expiry] -->|HTTP| OpenMeteo[(Open-Meteo API)]
+        Weather -->|failure| Unavailable[status: unavailable / stale<br/>no invented conditions]
+        CropRef[(crop_reference.json<br/>cited, needs_review)]
+        Repo --> Facts[spaces, plantings,<br/>seed varieties, tasks]
+    end
+
+    Weather --> Engine
+    CropRef --> Engine
+    Facts --> Engine
+    Engine[Recommendation engine<br/>deterministic rules: frost, rain/soil,<br/>grow-light data, data quality] --> Recs[Recommendations<br/>evidence + unknowns + limitations + expiry]
+    Recs --> Repo
+    Recs --> UI
+    UI --> Human{Human in the loop<br/>Accept or Dismiss}
+    Human -->|accept: one task, idempotency key| Service
+    Human -->|dismiss: not raised again| Service
+
+    subgraph Testing [Reliability checks]
+        Pytest[pytest: 29 original + 51 Verdant tests<br/>domain, scope, permissions, persistence,<br/>weather, rules, Streamlit AppTest]
+        Eval[scripts/evaluate_recommendations.py<br/>12 scenarios + guardrails]
+    end
+    Pytest -.verifies.-> PawPal
+    Pytest -.verifies.-> Service
+    Eval -.verifies.-> Engine

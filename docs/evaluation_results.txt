@@ -1,0 +1,16 @@
+Verdant advisory evaluation - 12 scenarios, fixed date 2026-11-16
+
+ 1. PASS  Tender basil outdoors, low 31F                 -> frost_risk/action/needs_adjustment
+ 2. PASS  Tender tomato under cover, low 35F             -> frost_risk/watch/needs_adjustment
+ 3. PASS  Boundary: low exactly 36F                      -> frost_risk/watch/needs_adjustment
+ 4. PASS  Boundary: low 37F (no alert)                   -> no advice
+ 5. PASS  Indoor basil, low 25F (not exposed)            -> no advice
+ 6. PASS  Frost-tolerant kale, low 30F                   -> no advice
+ 7. PASS  Unknown sensitivity (rosemary), low 30F        -> frost_risk/info/insufficient_data
+ 8. PASS  Planned pepper not yet sown, low 28F           -> no advice
+ 9. PASS  Rain 80% on outdoor beans with watering task   -> rain_soil_check/info/needs_adjustment
+10. PASS  Rain 80% in a greenhouse                       -> no advice
+11. PASS  Grow light without PPFD                        -> grow_light/info/insufficient_data
+12. PASS  Weather outage with outdoor basil              -> data_quality/watch/insufficient_data
+
+Summary: 12/12 scenarios matched expected advice; 12/12 passed all guardrails (deterministic, no automatic task changes, evidence present, unknowns stated).
