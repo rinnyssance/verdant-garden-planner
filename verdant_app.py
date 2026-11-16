@@ -78,18 +78,19 @@ garden = service.garden(USER, garden_id)
 page = Page(service, weather, USER, garden, garden_today(garden))
 st.caption(f"Viewing **{esc(garden.display_name)}** · {esc(garden.location_label)}")
 
-tabs = st.tabs(["Dashboard", "Seed Library", "My Plants", "Garden Spaces", "Calendar", "Field Journal", "Settings"])
-with tabs[0]:
-    dashboard.render(page)
-with tabs[1]:
-    seeds.render(page)
-with tabs[2]:
-    plantings.render(page)
-with tabs[3]:
-    spaces.render(page)
-with tabs[4]:
-    calendar.render(page)
-with tabs[5]:
-    journal.render(page)
-with tabs[6]:
-    settings.render(page, geocoder)
+# A stateful selector (unlike st.tabs) keeps you on the same screen after every save.
+SECTIONS = {
+    "Dashboard": dashboard.render,
+    "Seed Library": seeds.render,
+    "My Plants": plantings.render,
+    "Garden Spaces": spaces.render,
+    "Calendar": calendar.render,
+    "Field Journal": journal.render,
+    "Settings": lambda p: settings.render(p, geocoder),
+}
+if st.session_state.get("vd_nav") not in SECTIONS:
+    st.session_state["vd_nav"] = "Dashboard"
+section = st.segmented_control("Section", list(SECTIONS), key="vd_nav", required=True,
+                               label_visibility="collapsed")
+st.divider()
+SECTIONS[section or "Dashboard"](page)

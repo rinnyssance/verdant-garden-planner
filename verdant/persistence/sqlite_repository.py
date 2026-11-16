@@ -13,6 +13,18 @@ from pathlib import Path
 
 from .repository import GARDEN_SCOPED, TABLES
 
+# Look tables up by class *name*: Streamlit's hot reload can create new class
+# objects while a cached repository instance lives on.
+_TABLE_BY_NAME = {cls.__name__: table for cls, table in TABLES.items()}
+_SCOPED_NAMES = {cls.__name__ for cls in GARDEN_SCOPED}
+
+
+def _table(cls) -> str:
+    try:
+        return _TABLE_BY_NAME[cls.__name__]
+    except KeyError:
+        raise TypeError(f"{cls.__name__} is not a stored record type.") from None
+
 MIGRATIONS = Path(__file__).with_name("migrations")
 
 
@@ -97,7 +109,7 @@ class SQLiteRepository:
     # -- CRUD -------------------------------------------------------------
     def save(self, obj) -> None:
         cls = type(obj)
-        table = TABLES[cls]
+        table = _table(cls)
         names = [f.name for f in fields(cls)]
         values = [_encode(getattr(obj, n)) for n in names]
         updates = ", ".join(f"{n} = excluded.{n}" for n in names if n != "id")
@@ -111,11 +123,11 @@ class SQLiteRepository:
         return cls(**{f.name: _decode(hints[f.name], row[f.name]) for f in fields(cls)})
 
     def get(self, cls, id: str):
-        row = self.conn.execute(f"SELECT * FROM {TABLES[cls]} WHERE id = ?", (id,)).fetchone()
+        row = self.conn.execute(f"SELECT * FROM {_table(cls)} WHERE id = ?", (id,)).fetchone()
         return self._row_to_obj(cls, row) if row else None
 
     def _where(self, cls, garden_id, filters):
-        if cls in GARDEN_SCOPED and garden_id is None:
+        if cls.__name__ in _SCOPED_NAMES and garden_id is None:
             raise ValueError(f"Listing {cls.__name__} requires a garden_id.")
         allowed = {f.name for f in fields(cls)}
         clauses, params = [], []
@@ -137,18 +149,18 @@ class SQLiteRepository:
 
     def list(self, cls, garden_id: str | None = None, **filters) -> list:
         where, params = self._where(cls, garden_id, filters)
-        rows = self.conn.execute(f"SELECT * FROM {TABLES[cls]}{where} ORDER BY rowid", params).fetchall()
+        rows = self.conn.execute(f"SELECT * FROM {_table(cls)}{where} ORDER BY rowid", params).fetchall()
         return [self._row_to_obj(cls, row) for row in rows]
 
     def delete(self, cls, id: str) -> None:
-        self.conn.execute(f"DELETE FROM {TABLES[cls]} WHERE id = ?", (id,))
+        self.conn.execute(f"DELETE FROM {_table(cls)} WHERE id = ?", (id,))
         self._autocommit()
 
     def delete_where(self, cls, garden_id: str, **filters) -> int:
         if garden_id is None:
             raise ValueError("Bulk deletes must be scoped to a garden.")
         where, params = self._where(cls, garden_id, filters)
-        count = self.conn.execute(f"DELETE FROM {TABLES[cls]}{where}", params).rowcount
+        count = self.conn.execute(f"DELETE FROM {_table(cls)}{where}", params).rowcount
         self._autocommit()
         return count
 

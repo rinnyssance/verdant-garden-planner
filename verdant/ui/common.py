@@ -14,7 +14,8 @@ STYLE = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap');
 :root { --ivory:#F7F4EB; --forest:#234D3B; --sage:#A8BDA4; --terracotta:#BD7355; --gold:#C5A56A; --ink:#1F2B24; }
-html, body, [class*="st-"], .stMarkdown, button, input, textarea { font-family: 'Inter', system-ui, sans-serif; }
+/* Text only: never override spans, so Streamlit's Material icon font keeps working. */
+html, body, .stApp, p, label, input, textarea, li, td, th { font-family: 'Inter', system-ui, sans-serif; }
 h1, h2, h3, .vd-title { font-family: 'Fraunces', Georgia, serif !important; color: var(--forest); letter-spacing: -0.01em; }
 .stApp { background: var(--ivory); color: var(--ink); }
 .block-container { padding-top: 1.5rem; max-width: 1100px; }
@@ -89,6 +90,7 @@ def show_notice():
     if "vd_notice" in st.session_state:
         kind, message = st.session_state.pop("vd_notice")
         getattr(st, kind)(message)
+        st.toast(message)  # visible even when the page is scrolled down
 
 
 def run_safely(action, success: str | None = None):
