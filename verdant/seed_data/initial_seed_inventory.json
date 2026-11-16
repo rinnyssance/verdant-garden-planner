@@ -1,0 +1,32 @@
+{
+  "description": "Candidate seed inventory transcribed from the operator's packet photographs (design document section 5). Import into the primary garden only. 'transcribed' = name legible on the packet list; 'needs_review' = spelling, cultivar or identity uncertain. Brands, counts, dates and growing requirements were not transcribed and are left empty on purpose.",
+  "source": "Operator's seed packet photos, as listed in VERDANT_DESIGN_DOCUMENT.md v1.0 section 5",
+  "entries": [
+    {"key": "tomato-super-sweet-100", "common_name": "Tomato", "cultivar": "Super Sweet 100 Hybrid", "category": "vegetable", "crop_key": "tomato", "verification_status": "transcribed"},
+    {"key": "tomato-rio-grande", "common_name": "Tomato", "cultivar": "Rio Grande", "category": "vegetable", "crop_key": "tomato", "verification_status": "transcribed"},
+    {"key": "carrot-scarlet-nantes", "common_name": "Carrot", "cultivar": "Scarlet Nantes", "category": "vegetable", "crop_key": "carrot", "verification_status": "transcribed"},
+    {"key": "beet-early-wonder-tall-top", "common_name": "Beet", "cultivar": "Early Wonder Tall Top", "category": "vegetable", "crop_key": "beet", "verification_status": "transcribed"},
+    {"key": "bean-frijol-pinto", "common_name": "Garden bean", "cultivar": "Frijol Pinto", "category": "vegetable", "crop_key": "bean", "verification_status": "transcribed"},
+    {"key": "pea-sugar-snap", "common_name": "Pea", "cultivar": "Sugar Snap", "category": "vegetable", "crop_key": "pea", "verification_status": "transcribed"},
+    {"key": "spinach-corenta", "common_name": "Spinach", "cultivar": "Corenta Hybrid", "category": "vegetable", "crop_key": "spinach", "verification_status": "needs_review", "note": "Verify cultivar spelling on the packet."},
+    {"key": "cauliflower-snowball-x", "common_name": "Cauliflower", "cultivar": "Snowball X", "category": "vegetable", "crop_key": "cauliflower", "verification_status": "needs_review", "note": "Verify cultivar name on the packet."},
+    {"key": "summer-squash-zucchini", "common_name": "Summer squash (zucchini)", "cultivar": null, "category": "vegetable", "crop_key": "summer_squash", "verification_status": "transcribed", "note": "Cultivar not recorded."},
+    {"key": "cucumber-straight-eight", "common_name": "Cucumber", "cultivar": "Straight Eight", "category": "vegetable", "crop_key": "cucumber", "verification_status": "needs_review", "note": "Verify cultivar name on the packet."},
+    {"key": "watermelon-jubilee", "common_name": "Watermelon", "cultivar": "Jubilee", "category": "vegetable", "crop_key": "watermelon", "verification_status": "needs_review", "note": "Verify cultivar name on the packet."},
+    {"key": "kale-unknown", "common_name": "Kale", "cultivar": null, "category": "vegetable", "crop_key": "kale", "verification_status": "needs_review", "note": "Variety unclear in photo."},
+    {"key": "pepper-hungarian-yellow-wax", "common_name": "Hot pepper", "cultivar": "Hungarian Yellow Wax", "category": "vegetable", "crop_key": "pepper", "verification_status": "transcribed"},
+    {"key": "pepper-habanero", "common_name": "Hot pepper", "cultivar": "Habanero", "category": "vegetable", "crop_key": "pepper", "verification_status": "transcribed"},
+    {"key": "pepper-jalapeno", "common_name": "Jalapeño pepper", "cultivar": null, "category": "vegetable", "crop_key": "pepper", "verification_status": "transcribed"},
+    {"key": "pepper-dark-unidentified", "common_name": "Hot pepper (dark packet, unidentified)", "cultivar": null, "category": "vegetable", "crop_key": "pepper", "verification_status": "needs_review", "note": "Additional dark hot pepper packet; identity not confirmed."},
+    {"key": "onion-bunching", "common_name": "Bunching onion", "cultivar": null, "category": "vegetable", "crop_key": "onion", "verification_status": "needs_review", "note": "Cultivar unclear in photo."},
+    {"key": "basil-sweet", "common_name": "Sweet basil", "cultivar": null, "category": "herb", "crop_key": "basil", "verification_status": "transcribed"},
+    {"key": "lavender-english", "common_name": "English lavender", "cultivar": null, "category": "herb", "crop_key": "lavender", "verification_status": "transcribed"},
+    {"key": "rosemary", "common_name": "Rosemary", "cultivar": null, "category": "herb", "crop_key": "rosemary", "verification_status": "transcribed"},
+    {"key": "sage-common", "common_name": "Common sage", "cultivar": null, "category": "herb", "crop_key": "sage", "verification_status": "transcribed"},
+    {"key": "parsley-italian-plain", "common_name": "Parsley", "cultivar": "Italian / plain", "category": "herb", "crop_key": "parsley", "verification_status": "needs_review", "note": "Packet listed as 'Italian/plain'; confirm exact cultivar wording."},
+    {"key": "chamomile-german", "common_name": "German chamomile", "cultivar": null, "category": "flower", "crop_key": "chamomile", "verification_status": "transcribed"},
+    {"key": "wildflower-shade-blend", "common_name": "Shade-area wildflower blend", "cultivar": null, "category": "flower", "crop_key": "wildflower_mix", "verification_status": "transcribed", "note": "Mixture; species list not transcribed."},
+    {"key": "microgreens-hot-mix", "common_name": "Microgreens", "cultivar": "Hot mix", "category": "microgreen", "crop_key": "microgreens", "verification_status": "transcribed"},
+    {"key": "microgreens-mild-mix", "common_name": "Microgreens", "cultivar": "Mild mix", "category": "microgreen", "crop_key": "microgreens", "verification_status": "transcribed"}
+  ]
+}

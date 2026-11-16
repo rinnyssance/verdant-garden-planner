@@ -1,0 +1,33 @@
+{
+  "description": "Crop-level frost sensitivity used by the frost advisory rule. Classes follow the common extension-service split of warm-season (frost-tender) and cool-season (frost-tolerant) vegetables. This table was drafted with AI assistance from general horticultural knowledge and has NOT yet been checked line by line against the cited publication; every row is 'needs_review' until the operator verifies it. 'unknown' means the rule will report insufficient data instead of guessing.",
+  "citation": "Virginia Cooperative Extension, Vegetable Planting Guide and Recommended Planting Dates (publication 426-331), https://www.pubs.ext.vt.edu/",
+  "verification_status": "needs_review",
+  "frost_sensitivity_values": {
+    "tender": "Damaged or killed by frost; warm-season crop.",
+    "tolerant": "Tolerates light frost; cool-season crop.",
+    "unknown": "Not classified here (perennials vary by cultivar and zone; mixes vary by species)."
+  },
+  "crops": {
+    "tomato": {"frost_sensitivity": "tender"},
+    "pepper": {"frost_sensitivity": "tender"},
+    "bean": {"frost_sensitivity": "tender"},
+    "cucumber": {"frost_sensitivity": "tender"},
+    "summer_squash": {"frost_sensitivity": "tender"},
+    "watermelon": {"frost_sensitivity": "tender"},
+    "basil": {"frost_sensitivity": "tender"},
+    "pea": {"frost_sensitivity": "tolerant"},
+    "spinach": {"frost_sensitivity": "tolerant"},
+    "kale": {"frost_sensitivity": "tolerant"},
+    "onion": {"frost_sensitivity": "tolerant"},
+    "beet": {"frost_sensitivity": "tolerant"},
+    "carrot": {"frost_sensitivity": "tolerant"},
+    "cauliflower": {"frost_sensitivity": "tolerant"},
+    "parsley": {"frost_sensitivity": "tolerant"},
+    "lavender": {"frost_sensitivity": "unknown"},
+    "rosemary": {"frost_sensitivity": "unknown"},
+    "sage": {"frost_sensitivity": "unknown"},
+    "chamomile": {"frost_sensitivity": "unknown"},
+    "wildflower_mix": {"frost_sensitivity": "unknown"},
+    "microgreens": {"frost_sensitivity": "unknown"}
+  }
+}
