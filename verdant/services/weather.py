@@ -151,7 +151,9 @@ class WeatherService:
                 return ForecastResult("stale", cache, f"Weather update failed; showing the forecast fetched "
                                       f"{cache[0].fetched_at:%Y-%m-%d %H:%M} UTC. Advisories paused.",
                                       cache[0].provider, cache[0].fetched_at)
-            return ForecastResult("unavailable", [], "Weather unavailable right now. No conditions are assumed.")
+            reason = str(error).split(":")[0] or "error"
+            return ForecastResult("unavailable", [], f"Weather unavailable right now ({reason}). "
+                                  "No conditions are assumed.")
         expires = now + self.ttl
         units = getattr(self.provider, "units", "imperial")
         snapshots = [WeatherSnapshot(garden.id, self.provider.name, now, expires, units=units, **row)
