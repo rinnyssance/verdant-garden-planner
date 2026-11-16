@@ -137,3 +137,14 @@ def test_sample_gardens_button_for_visitors(env):
     app.session_state["vd_garden"] = moms
     go(app, "Seed Library")
     assert any("seed library is empty" in i.value for i in app.info)
+
+
+def test_samples_can_be_added_next_to_existing_gardens(env):
+    app = onboard()
+    go(app, "Settings")
+    click(app, "Load sample gardens")
+    names = [g.display_name for g in gardens(env)]
+    assert names[:2] == ["My Garden", "Mom's Garden"] and len(names) == 4
+    go(app, "Settings")
+    click(app, "Load sample gardens")
+    assert len(gardens(env)) == 4  # not duplicated

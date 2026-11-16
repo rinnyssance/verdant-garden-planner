@@ -81,6 +81,18 @@ def render(page: Page, geocoder):
                 st.session_state["vd_garden_next"] = garden.id  # applied before the selector renders
                 notify(f"Created {garden.display_name}.")
 
+    st.subheader("Sample gardens")
+    st.caption("Adds two sample gardens (Richmond and Norfolk, VA) alongside yours. Your gardens are not changed.")
+    if st.button("Load sample gardens", key="vd_demo_settings"):
+        from datetime import date
+
+        from verdant.services.demo import load_demo
+        made = load_demo(page.service, page.user_id, date.today())
+        if made:
+            st.session_state["vd_garden_next"] = made[0].id
+            notify("Sample gardens added. Switch gardens with the selector at the top.")
+        notify("Sample gardens are already loaded.", "info")
+
     st.subheader("Privacy")
     st.caption("Data is stored on this computer in a local SQLite database. Photos are kept in a per-garden "
                "folder and are only shown inside that garden. Sign-in and sharing with family members are planned "

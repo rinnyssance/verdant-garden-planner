@@ -11,8 +11,11 @@ from .inventory import import_initial_inventory
 
 
 def load_demo(service, user_id: str, today: date) -> list:
-    """Create two sample gardens. Returns the gardens created (none if any already exist)."""
-    if service.gardens(user_id):
+    """Create two sample gardens. Returns the gardens created (none if the samples already exist).
+
+    Never touches gardens the user created.
+    """
+    if any(g.display_name.endswith("(sample)") for g in service.gardens(user_id)):
         return []
     mine = service.create_garden(user_id, "My Garden (sample)", city="Richmond", region="Virginia",
                                  country="United States", latitude=37.55, longitude=-77.46,
