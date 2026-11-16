@@ -64,6 +64,14 @@ macOS/Linux: `source .venv/bin/activate`. No API key is needed: Open-Meteo is fr
 
 **First run:** create your gardens → Settings → search your city → *Use this location* → (optionally) import the packet list into your own garden → add growing spaces → start plantings from the Seed Library → Dashboard → *Check weather & advice*.
 
+## Deploy (Streamlit Community Cloud)
+
+1. Sign in at [share.streamlit.io](https://share.streamlit.io) with GitHub → **Create app** → *Deploy a public app from GitHub*.
+2. Repository `rinnyssance/verdant-garden-planner`, branch `main`, main file `verdant_app.py`. Under *Advanced settings* choose Python 3.10 or newer.
+3. After it starts, open the app's **Settings → Sharing** and make it **private (invite only)** if you will store real garden data.
+
+Caveats for this MVP: there is no sign-in yet, so anyone who can open a public URL can view and edit every garden, including its city. The SQLite file lives on the container's disk and is **reset whenever the app restarts or redeploys**. Durable, per-user storage arrives with Supabase in Phase 3. Vercel is not suitable: it runs short-lived serverless functions, while Streamlit needs a long-running server with websockets.
+
 ## Sample interactions
 
 All three are reproducible from the commands above. Full output: [docs/demo_output.txt](docs/demo_output.txt), [docs/evaluation_results.txt](docs/evaluation_results.txt).
