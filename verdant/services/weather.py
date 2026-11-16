@@ -132,6 +132,10 @@ class WeatherService:
     def cached(self, garden_id: str) -> list[WeatherSnapshot]:
         return sorted(self.repo.list(WeatherSnapshot, garden_id), key=lambda s: s.forecast_for)
 
+    def clear(self, garden_id: str) -> None:
+        """Forget cached forecasts, e.g. after the garden's location changes."""
+        self.repo.delete_where(WeatherSnapshot, garden_id)
+
     def forecast(self, garden, now: datetime | None = None, refresh: bool = False) -> ForecastResult:
         now = now or utcnow()
         cache = self.cached(garden.id)
