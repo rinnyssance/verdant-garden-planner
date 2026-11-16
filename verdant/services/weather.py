@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
@@ -35,12 +36,19 @@ class WeatherProvider(Protocol):
 
 
 def _get_json(url: str, timeout: float) -> dict:
+    """GET JSON, retrying once on network errors (e.g. slow TLS handshakes on shared cloud hosts)."""
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except Exception as error:  # network, HTTP, JSON: all mean "unavailable"
-        raise WeatherUnavailable(f"{type(error).__name__}: {error}") from error
+    last_error = None
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout * (attempt + 1)) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as error:  # the server answered; retrying will not help
+            raise WeatherUnavailable(f"HTTPError {error.code}: {error.reason}") from error
+        except Exception as error:  # network or JSON problems: one retry with a longer timeout
+            last_error = error
+            log.warning("weather request attempt %d failed: %s", attempt + 1, error)
+    raise WeatherUnavailable(f"{type(last_error).__name__}: {last_error}") from last_error
 
 
 class OpenMeteoProvider:

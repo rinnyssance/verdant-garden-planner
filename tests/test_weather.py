@@ -73,3 +73,18 @@ def test_open_meteo_parsing_and_url():
         OpenMeteoProvider.parse({"error": True, "reason": "bad"})
     url = OpenMeteoProvider("https://example.test/forecast").build_url(37.5, -77.4, "America/New_York", 7)
     assert "temperature_unit=fahrenheit" in url and "latitude=37.5" in url
+
+
+def test_network_error_retries_once_then_reports(monkeypatch):
+    import urllib.request
+    from verdant.services import weather as weather_module
+    calls = []
+
+    def fake_urlopen(request, timeout):
+        calls.append(timeout)
+        raise TimeoutError("handshake timed out")
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    with pytest.raises(WeatherUnavailable, match="TimeoutError"):
+        weather_module._get_json("https://example.test", 10)
+    assert calls == [10, 20]
