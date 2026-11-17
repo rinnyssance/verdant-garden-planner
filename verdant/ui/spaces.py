@@ -1,12 +1,14 @@
-"""Garden Spaces: where things grow, with explicit light and exposure."""
+"""Garden Spaces: beds, containers, shelves and grow-light setups, with explicit light and exposure."""
 
 from __future__ import annotations
 
 import streamlit as st
 
+from verdant.domain import SeedVariety
 from verdant.domain.gardens import EXPOSURES, GROWING_METHODS, LIGHT_SOURCES, SETTINGS
 
-from .common import Page, esc, optional, run_safely
+from .common import Page, html, optional, run_safely
+from .theme import METHOD_ICON, SETTING_ICON, SETTING_LABEL, chip, empty_state, esc, page_header, space_illustration
 
 PRETTY = lambda value: value.replace("_", " ")  # noqa: E731
 
@@ -41,29 +43,57 @@ def space_fields(page: Page, prefix: str, space=None) -> dict:
                 soil_medium=optional(soil), irrigation_method=optional(irrigation), notes=notes)
 
 
+def space_card(page: Page, space, plants: list[str]):
+    with page.card(f"space-{space.id}"):
+        html(space_illustration(space, space.id[:8]))
+        weather_note = ("Gets outdoor rain and frost" if space.setting == "outdoor"
+                        else "Sheltered from rain; outdoor cold can reach it" if space.setting == "covered"
+                        else "Sheltered from outdoor rain and frost")
+        chips = (chip(SETTING_LABEL[space.setting], "" if space.setting in ("indoor", "greenhouse") else "warm",
+                      SETTING_ICON[space.setting])
+                 + chip(PRETTY(space.growing_method), "ink", METHOD_ICON[space.growing_method])
+                 + chip(PRETTY(space.exposure), "out", "sun"))
+        light = PRETTY(space.light_source)
+        if space.uses_grow_light:
+            light += (f" · {space.grow_light_hours:g} h/day" if space.grow_light_hours is not None else " · hours unknown")
+            light += (f" · PPFD {space.grow_light_ppfd:g}" if space.grow_light_ppfd is not None else " · PPFD unknown")
+        rows = {"Light": light, "Weather": weather_note}
+        if space.estimated_direct_sun_hours is not None:
+            rows["Direct sun"] = f"~{space.estimated_direct_sun_hours:g} h (your estimate)"
+        if space.soil_medium:
+            rows["Medium"] = space.soil_medium
+        if space.irrigation_method:
+            rows["Watering"] = space.irrigation_method
+        rows["Growing here"] = ", ".join(plants) if plants else "nothing yet"
+        html(f'<div class="vd-title">{esc(space.name)}</div><div style="margin-top:.35rem">{chips}</div>'
+             '<dl class="vd-kv">' + "".join(f"<dt>{esc(k)}</dt><dd>{esc(v)}</dd>" for k, v in rows.items()) + "</dl>"
+             + (f'<div class="vd-meta">{esc(space.notes)}</div>' if space.notes else ""))
+        with st.expander("Edit space", icon=":material/edit:"):
+            with st.form(page.key(f"edit_space_{space.id}")):
+                values = space_fields(page, f"edit_{space.id}", space)
+                if st.form_submit_button("Save space", type="primary"):
+                    run_safely(lambda: page.service.update_space(page.user_id, page.gid, space.id, **values),
+                               "Space updated.")
+
+
 def render(page: Page):
     spaces = page.service.spaces(page.user_id, page.gid)
-    with st.expander("Add a growing space", expanded=not spaces):
+    html(page_header("Garden Spaces", "Where things grow",
+                     "Beds, containers, shelves and grow-light setups. Setting and light decide which weather advice applies."))
+    with st.expander("Add a growing space", expanded=not spaces, icon=":material/add:"):
         with st.form(page.key("add_space"), clear_on_submit=True):
             values = space_fields(page, "new_space")
             if st.form_submit_button("Add space", type="primary"):
                 name = values.pop("name")
                 run_safely(lambda: page.service.add_space(page.user_id, page.gid, name, **values), "Space added.")
     if not spaces:
-        st.info("No spaces yet. Add an indoor shelf, grow-light station, sunny bed or shaded porch.")
-    for space in spaces:
-        with st.container(border=True):
-            st.markdown(f"**{esc(space.name)}**")
-            light = PRETTY(space.light_source)
-            if space.uses_grow_light:
-                light += (f" · {space.grow_light_hours:g} h/day" if space.grow_light_hours is not None else " · hours unknown")
-                light += (f" · PPFD {space.grow_light_ppfd:g}" if space.grow_light_ppfd is not None else " · PPFD unknown")
-            sun = ("" if space.estimated_direct_sun_hours is None
-                   else f" · ~{space.estimated_direct_sun_hours:g} h direct sun (estimate)")
-            st.caption(f"{PRETTY(space.setting)} · {PRETTY(space.growing_method)} · {PRETTY(space.exposure)}{sun} · {light}")
-            with st.expander("Edit"):
-                with st.form(page.key(f"edit_space_{space.id}")):
-                    values = space_fields(page, f"edit_{space.id}", space)
-                    if st.form_submit_button("Save space"):
-                        run_safely(lambda: page.service.update_space(page.user_id, page.gid, space.id, **values),
-                                   "Space updated.")
+        html(empty_state("No spaces yet", " Add an indoor shelf, grow-light station, sunny bed or shaded porch.", "bed"))
+        return
+    plants: dict[str, list[str]] = {}
+    for p in page.service.plantings(page.user_id, page.gid):
+        variety = page.service.repo.get(SeedVariety, p.seed_variety_id)
+        plants.setdefault(p.growing_space_id, []).append(p.nickname or (variety.label if variety else "Planting"))
+    cols = st.columns(3, gap="medium")
+    for index, space in enumerate(spaces):
+        with cols[index % 3]:
+            space_card(page, space, plants.get(space.id, []))

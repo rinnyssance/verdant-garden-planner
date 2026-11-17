@@ -8,7 +8,10 @@ import streamlit as st
 
 from pawpal_system import FREQUENCIES, PRIORITIES
 
-from .common import Page, esc, notify, run_safely
+from .common import Page, html, notify, run_safely
+from .theme import chip, empty_state, esc, page_header, section, table
+
+PRIORITY_TONE = {"high": "warm", "medium": "gold", "low": "out"}
 
 
 def target_options(page: Page) -> dict:
@@ -22,15 +25,23 @@ def target_options(page: Page) -> dict:
 
 
 def task_row(page: Page, task, context: str):
-    with st.container(border=True):
-        details, action = st.columns([4, 2])
-        details.markdown(f"**{esc(task.start_time)} · {esc(task.description)}**")
-        extra = " · suggested" if task.source == "suggested" else ""
-        details.caption(f"{task.due_date:%a %b %d} · {task.duration_minutes} min · {task.priority} priority · "
-                        f"{task.recurrence}{extra}")
+    with page.card(f"task-{context}-{task.id}"):
+        details, action = st.columns([5, 2], vertical_alignment="center")
+        chips = chip(f"{task.priority} priority", PRIORITY_TONE[task.priority])
+        if task.recurrence != "once":
+            chips += chip(task.recurrence, "ink", "clock")
+        if task.source == "suggested":
+            chips += chip("from advice", "", "spark")
+        if not task.completed and task.due_date < page.today:
+            chips += chip("overdue", "warm", "alert")
+        details.markdown(
+            f'<div style="display:flex;gap:.8rem;align-items:center"><div class="vd-when">{task.due_date:%a}'
+            f'<b>{esc(task.start_time)}</b></div><div><div class="vd-title" style="font-size:1.02rem">'
+            f'{esc(task.description)}</div><div class="vd-meta" style="margin:.1rem 0 .2rem">{task.due_date:%b %d} · '
+            f'{task.duration_minutes} min</div>{chips}</div></div>', unsafe_allow_html=True)
         if task.completed:
-            action.success("Done")
-        elif action.button("Complete", key=page.key(f"{context}_done_{task.id}")):
+            action.markdown(chip("Done", "", "check"), unsafe_allow_html=True)
+        elif action.button("Complete", key=page.key(f"{context}_done_{task.id}"), icon=":material/check:"):
             _, following = page.service.complete_task(page.user_id, page.gid, task.id, page.today)
             notify("Task completed." + (f" Next: {following.due_date} at {following.start_time}." if following else ""))
 
@@ -53,29 +64,52 @@ def task_fields(page: Page, prefix: str, task=None, default_date=None):
                 duration_minutes=int(duration), priority=priority, recurrence=recurrence)
 
 
+def week_strip(schedule, day, today) -> str:
+    start = day - timedelta(days=day.weekday())
+    cells = []
+    for i in range(7):
+        current = start + timedelta(days=i)
+        pending = sum(not t.completed for t in schedule.tasks(on_date=current))
+        cls = "wd sel" if current == day else "wd"
+        label = "Today" if current == today else f"{current:%a}"
+        dot = f'<div class="dot">{pending}</div>' if pending else '<div style="height:1.15rem"></div>'
+        cells.append(f'<div class="{cls}" title="{pending} pending">{label}<b>{current:%d}</b>{dot}</div>')
+    return f'<div class="vd-week" aria-label="Week overview">{"".join(cells)}</div>'
+
+
 def render(page: Page):
     schedule = page.service.schedule(page.user_id, page.gid)
+    html(page_header("Calendar", "Care & planting schedule",
+                     "Recurring care, overlaps and a plan that fits your time. Times you set are never moved for you."))
     left, right = st.columns([2, 2])
     day = left.date_input("Show", page.today, key=page.key("cal_day"))
     view = right.radio("View", ["Day", "Week"], horizontal=True, key=page.key("cal_view"))
+    html(week_strip(schedule, day, page.today))
     overdue = schedule.overdue(page.today)
     if overdue:
         st.warning(f"{len(overdue)} overdue task(s): " + ", ".join(f"{t.description} ({t.due_date})" for t in overdue[:5]))
     days = [day] if view == "Day" else [day + timedelta(days=i) for i in range(7)]
+    if overdue and page.today in days:
+        html('<div class="vd-h2" style="font-size:1.1rem;margin-top:.4rem">Overdue</div>')
+        for task in overdue:
+            task_row(page, task, "overdue")
     for current in days:
         tasks = schedule.tasks(on_date=current)
         if view == "Week":
-            st.markdown(f"**{current:%A %b %d}**")
+            html(f'<div class="vd-h2" style="font-size:1.1rem;margin-top:1rem">{current:%A, %B %d}</div>')
         for warning in schedule.conflicts(current):
             st.warning(warning)
         if not tasks:
-            st.caption("No tasks." if view == "Week" else "No tasks on this day.")
+            if view == "Day":
+                html(empty_state("No tasks on this day", " Add one below, or accept a recommendation on the Overview.", "calendar"))
+            else:
+                st.caption("No tasks.")
         for task in tasks:
             task_row(page, task, f"cal{current.isoformat()}")
     st.caption("Overlap warnings cover this garden only. Completed tasks stay as history; "
                "repeating tasks create their next occurrence when completed.")
 
-    st.subheader("Add a task")
+    html(section("Add a task", "task"))
     options = target_options(page)
     with st.form(page.key("add_task"), clear_on_submit=True):
         target = st.selectbox("For", list(options), format_func=options.get, key=page.key("new_target"))
@@ -89,9 +123,9 @@ def render(page: Page):
 
     pending = [t for t in schedule.tasks(completed=False) if t.due_date in days or t in overdue]
     if pending:
-        st.subheader("Edit pending tasks")
+        html(section("Edit pending tasks", "clock"))
     for task in pending:
-        with st.expander(f"{task.due_date} · {task.start_time} · {task.description}"):
+        with st.expander(f"{task.due_date:%a %b %d} · {task.start_time} · {task.description}"):
             with st.form(page.key(f"edit_{task.id}")):
                 edits = task_fields(page, f"edit_{task.id}", task)
                 if st.form_submit_button("Save changes"):
@@ -100,24 +134,23 @@ def render(page: Page):
             if st.button("Delete task", key=page.key(f"del_{task.id}")):
                 run_safely(lambda: page.service.delete_task(page.user_id, page.gid, task.id), "Task deleted.")
 
-    st.subheader("Plan my time")
-    st.caption("Uses the PawPal+ planner: higher priority first, no overlaps, within your hours and minutes. "
-               "It only suggests; nothing is moved or completed.")
+    html(section("Plan my time", "clock", "The PawPal+ planner: higher priority first, no overlaps, within your hours "
+                 "and minutes. It only suggests; nothing is moved or completed."))
     with st.form(page.key("plan")):
-        plan_day = st.date_input("Plan date", day, key=page.key("plan_day"))
-        budget = st.number_input("Minutes available", 0, 1440, 60, key=page.key("plan_budget"))
-        a, b = st.columns(2)
-        start = a.time_input("From", time(7), key=page.key("plan_from"))
-        end = b.time_input("Until", time(21), key=page.key("plan_until"))
-        submitted = st.form_submit_button("Build plan")
+        a, b, c, d = st.columns(4)
+        plan_day = a.date_input("Plan date", day, key=page.key("plan_day"))
+        budget = b.number_input("Minutes available", 0, 1440, 60, key=page.key("plan_budget"))
+        start = c.time_input("From", time(7), key=page.key("plan_from"))
+        end = d.time_input("Until", time(21), key=page.key("plan_until"))
+        submitted = st.form_submit_button("Build plan", type="primary")
     if submitted:
         plan = run_safely(lambda: schedule.plan(plan_day, int(budget), start.strftime("%H:%M"), end.strftime("%H:%M")))
         if plan is not None:
-            st.metric("Planned care", f"{plan.total_minutes} / {int(budget)} min")
+            html(f'<div class="vd-sub"><b>{plan.total_minutes} of {int(budget)} minutes</b> planned for {plan_day:%A, %B %d}.</div>')
             if plan.selected:
-                st.table([{"Time": t.start_time, "Task": t.description, "Priority": t.priority,
-                           "Minutes": t.duration_minutes} for t in plan.selected])
+                html(table([{"Time": t.start_time, "Task": t.description, "Priority": t.priority,
+                             "Minutes": t.duration_minutes} for t in plan.selected]))
             else:
-                st.info("No pending tasks fit this plan.")
+                html(empty_state("Nothing fits this plan", " Check the date, hours and minutes available.", "clock"))
             for task, reason in plan.skipped:
                 st.warning(f"{task.description} ({task.priority}) — {reason}")

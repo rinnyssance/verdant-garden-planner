@@ -1,4 +1,4 @@
-"""Field Journal: dated observations; charts only when there is enough real data."""
+"""Field Journal: an editorial notebook of dated observations; charts only with enough real data."""
 
 from __future__ import annotations
 
@@ -10,19 +10,50 @@ from verdant.domain import SeedVariety
 from verdant.domain.observations import MOISTURE
 from verdant.services.photos import photo_belongs_to, save_photo
 
-from .common import Page, esc, optional, run_safely
+from .common import Page, html, optional, run_safely
+from .theme import FOREST, chip, empty_state, esc, page_header, section
 
 MIN_CHART_POINTS = 3
 
 
+def entry(page: Page, obs):
+    with page.card(f"obs-{obs.id}"):
+        has_photo = photo_belongs_to(obs.photo_path, page.gid)
+        text_col, photo_col = st.columns([3, 2], gap="medium") if has_photo else (st.container(), None)
+        with text_col:
+            origin = chip("measured with an instrument", "ink", "ruler") if obs.data_origin == "instrument_measured" \
+                else chip("observed by you", "out", "book")
+            facts = ""
+            if obs.height_cm is not None:
+                facts += chip(f"{obs.height_cm:g} cm tall", "", "ruler")
+            if obs.leaf_count is not None:
+                facts += chip(f"{obs.leaf_count} leaves", "", "leaf")
+            if obs.moisture_assessment:
+                facts += chip(f"soil {obs.moisture_assessment.replace('_', ' ')}", "ink", "drop")
+            body = ""
+            if obs.notes:
+                body += f'<div class="vd-note-text">{esc(obs.notes)}</div>'
+            for label, value in (("Symptoms", obs.symptoms), ("Light", obs.light_notes)):
+                if value:
+                    body += f'<div class="vd-meta"><b>{label}:</b> {esc(value)}</div>'
+            html(f'<div class="vd-entry"><div class="vd-date"><div class="mm">{obs.observed_at:%b}</div>'
+                 f'<div class="dd">{obs.observed_at:%d}</div><div class="tt">{obs.observed_at:%Y · %H:%M}</div></div>'
+                 f'<div><div>{origin}{facts}</div><div style="margin-top:.5rem">{body}</div></div></div>')
+        if photo_col is not None:
+            with photo_col:
+                st.image(obs.photo_path, caption=f"{obs.observed_at:%b %d, %Y}")
+
+
 def render(page: Page):
+    html(page_header("Field Journal", "Notes from the garden",
+                     "Dated observations and photos. Your estimates and instrument readings stay clearly labelled."))
     plantings = page.service.plantings(page.user_id, page.gid)
     if not plantings:
         st.info("Start a planting first; journal entries belong to a planting.")
         return
     names = {p.id: p.nickname or page.service.repo.get(SeedVariety, p.seed_variety_id).label for p in plantings}
     chosen = st.selectbox("Planting", list(names), format_func=names.get, key=page.key("journal_planting"))
-    with st.expander("Add an entry", expanded=True):
+    with st.expander("Write an entry", expanded=False, icon=":material/edit_note:"):
         with st.form(page.key("add_obs"), clear_on_submit=True):
             a, b = st.columns(2)
             day = a.date_input("Date", page.today, key=page.key("obs_day"))
@@ -52,27 +83,16 @@ def render(page: Page):
 
     observations = page.service.observations(page.user_id, page.gid, chosen)
     heights = [(o.observed_at, o.height_cm) for o in observations if o.height_cm is not None]
+    html(section("Growth", "ruler"))
     if len(heights) >= MIN_CHART_POINTS:
-        st.line_chart({"Height (cm)": [h for _, h in heights]}, x_label="Entry", y_label="cm")
+        st.line_chart({"Date": [t.date() for t, _ in heights], "Height (cm)": [h for _, h in heights]},
+                      x="Date", y="Height (cm)", x_label="Date", y_label="cm", color=FOREST)
         st.caption("Chart shows only recorded heights; days without entries are not filled in.")
     else:
-        st.caption(f"A height chart appears after {MIN_CHART_POINTS} height entries (currently {len(heights)}).")
+        html(empty_state("Not enough measurements for a chart yet",
+                         f" A height chart appears after {MIN_CHART_POINTS} height entries (currently {len(heights)}).", "ruler"))
+    html(section("Entries", "book", f"{len(observations)} for {names[chosen]}, newest first."))
     if not observations:
         st.info("No journal entries for this planting yet.")
     for obs in reversed(observations):
-        with st.container(border=True):
-            label = "measured" if obs.data_origin == "instrument_measured" else "observed"
-            st.markdown(f"**{obs.observed_at:%Y-%m-%d %H:%M}** · {label}")
-            facts = []
-            facts += [f"height {obs.height_cm:g} cm"] if obs.height_cm is not None else []
-            facts += [f"{obs.leaf_count} leaves"] if obs.leaf_count is not None else []
-            facts += [f"soil {obs.moisture_assessment.replace('_', ' ')}"] if obs.moisture_assessment else []
-            if facts:
-                st.caption(" · ".join(facts))
-            for label_text, value in (("Symptoms", obs.symptoms), ("Light", obs.light_notes)):
-                if value:
-                    st.markdown(f"*{label_text}:* {esc(value)}")
-            if obs.notes:
-                st.write(obs.notes)
-            if photo_belongs_to(obs.photo_path, page.gid):
-                st.image(obs.photo_path, width=260)
+        entry(page, obs)

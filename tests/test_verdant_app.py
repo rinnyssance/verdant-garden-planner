@@ -115,7 +115,7 @@ def test_offline_advice_is_explicit_and_accept_adds_task(env):
     app.selectbox(key=f"{gid}:new_space_Light source").set_value("grow_light")
     app.selectbox(key=f"{gid}:new_space_Setting").set_value("indoor")
     click(app, "Add space")
-    go(app, "Dashboard")
+    go(app, "Overview")
     click(app, "Check weather & advice")
     assert any("Weather unavailable" in w.value for w in app.warning)
     assert any("Add grow-light details" in m.value for m in app.markdown)

@@ -1,8 +1,7 @@
-"""Shared UI helpers: page context, styling and small display components."""
+"""Shared UI helpers: page context, notices and small utilities."""
 
 from __future__ import annotations
 
-import html
 from dataclasses import dataclass
 from datetime import date, datetime
 
@@ -10,41 +9,16 @@ import streamlit as st
 
 from verdant.domain.common import utcnow
 
-STYLE = """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap');
-:root { --ivory:#F7F4EB; --forest:#234D3B; --sage:#A8BDA4; --terracotta:#BD7355; --gold:#C5A56A; --ink:#1F2B24; }
-/* Text only: never override spans, so Streamlit's Material icon font keeps working. */
-html, body, .stApp, p, label, input, textarea, li, td, th { font-family: 'Inter', system-ui, sans-serif; }
-h1, h2, h3, .vd-title { font-family: 'Fraunces', Georgia, serif !important; color: var(--forest); letter-spacing: -0.01em; }
-.stApp { background: var(--ivory); color: var(--ink); }
-.block-container { padding-top: 1.5rem; max-width: 1100px; }
-.vd-brand { display:flex; align-items:baseline; gap:.6rem; flex-wrap:wrap; margin-bottom:.25rem; }
-.vd-brand .vd-title { font-size:2rem; font-weight:600; margin:0; }
-.vd-brand .vd-tag { color:#4c5f52; font-size:.95rem; }
-.vd-badge { display:inline-block; padding:.1rem .55rem; border-radius:999px; font-size:.78rem; font-weight:600;
-            border:1px solid transparent; margin-right:.3rem; }
-.vd-action { background:#F6E3DA; color:#7A3B22; border-color:#BD7355; }
-.vd-watch { background:#F4EBD6; color:#6B5420; border-color:#C5A56A; }
-.vd-info { background:#E4ECE2; color:#234D3B; border-color:#A8BDA4; }
-.vd-review { background:#F4EBD6; color:#6B5420; }
-.vd-ok { background:#E4ECE2; color:#234D3B; }
-.vd-muted { color:#5b6a60; font-size:.9rem; }
-div.stButton > button[kind="primary"], div.stFormSubmitButton > button[kind="primary"] {
-    background: var(--forest); border-color: var(--forest); color: #fff; }
-div.stButton > button:focus-visible, div.stFormSubmitButton > button:focus-visible { outline: 3px solid var(--gold); }
-@media (max-width: 640px) {
-  .block-container { padding-left: 1rem; padding-right: 1rem; }
-  .vd-brand .vd-title { font-size: 1.6rem; }
-}
-</style>
-"""
+from .theme import CSS, chip, esc  # noqa: F401  (re-exported for screens)
+
+STYLE = CSS
 
 STAGE_LABELS = {"planned": "Planned", "sown": "Sown", "germinating": "Germinating", "seedling": "Seedling",
                 "vegetative": "Vegetative", "flowering": "Flowering", "fruiting": "Fruiting",
                 "harvesting": "Harvesting", "finished": "Finished"}
 VERIFY_LABELS = {"verified": "Verified", "transcribed": "From packet photo", "needs_review": "Needs review",
                  "user_entered": "Entered by you"}
+VERIFY_TONE = {"verified": "", "transcribed": "ink", "needs_review": "gold", "user_entered": "out"}
 
 
 @dataclass
@@ -63,22 +37,31 @@ class Page:
         """Widget keys are per garden so switching gardens never carries form state across."""
         return f"{self.gid}:{name}"
 
+    def card(self, name: str):
+        """A styled card container (CSS targets the st-key-vc- prefix)."""
+        safe = "".join(ch if ch.isalnum() else "-" for ch in f"{self.gid[:8]}-{name}")
+        return st.container(key=f"vc-{safe}")
+
+
+def garden_now(garden) -> datetime:
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.now(ZoneInfo(garden.timezone))
+    except Exception:
+        return datetime.now()
+
 
 def garden_today(garden) -> date:
     """Today's date in the garden's own time zone (falls back to the computer's date)."""
-    try:
-        from zoneinfo import ZoneInfo
-        return datetime.now(ZoneInfo(garden.timezone)).date()
-    except Exception:
-        return date.today()
+    return garden_now(garden).date()
+
+
+def html(markup: str):
+    st.markdown(markup, unsafe_allow_html=True)
 
 
 def badge(text: str, kind: str = "info") -> str:
-    return f'<span class="vd-badge vd-{kind}">{html.escape(text)}</span>'
-
-
-def esc(value) -> str:
-    return html.escape(str(value))
+    return f'<span class="vd-chip vd-sev-{kind}">{esc(text)}</span>'
 
 
 def notify(message: str, kind: str = "success"):
@@ -121,3 +104,17 @@ def ago(moment: datetime | None) -> str:
     if minutes < 90:
         return f"{minutes} min ago"
     return f"{minutes // 60} h ago" if minutes < 48 * 60 else f"{moment:%Y-%m-%d %H:%M} UTC"
+
+
+def days_ago(day: date, today: date) -> str:
+    delta = (today - day).days
+    return "today" if delta == 0 else "yesterday" if delta == 1 else f"{delta} days ago" if delta > 0 else f"in {-delta} days"
+
+
+def plant_photo(page: Page, planting_id: str) -> str | None:
+    """Most recent journal photo for a planting, if the user has taken one."""
+    from verdant.services.photos import photo_belongs_to
+    for obs in reversed(page.service.observations(page.user_id, page.gid, planting_id)):
+        if photo_belongs_to(obs.photo_path, page.gid):
+            return obs.photo_path
+    return None

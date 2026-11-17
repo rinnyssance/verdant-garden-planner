@@ -7,11 +7,12 @@ import streamlit as st
 from verdant.services.inventory import import_initial_inventory, load_initial_inventory
 from verdant.services.weather import WeatherUnavailable
 
-from .common import Page, notify, optional, run_safely
+from .common import Page, html, notify, optional, run_safely
+from .theme import page_header, section
 
 
 def location_search(page: Page, geocoder):
-    st.markdown("**Find location**")
+    html(section("Find location", "home"))
     st.caption("Search by city (or city and region). Coordinates are rounded to about 1 km and only used for "
                "forecasts; they are not shown elsewhere in the app.")
     a, b = st.columns([3, 1])
@@ -40,7 +41,8 @@ def location_search(page: Page, geocoder):
 
 def render(page: Page, geocoder):
     g = page.garden
-    st.subheader("This garden")
+    html(page_header("Settings", g.display_name, "Garden details, location for forecasts, imports and other gardens."))
+    html(section("This garden", "leaf"))
     with st.form(page.key("garden_form")):
         name = st.text_input("Garden name", g.display_name, key=page.key("g_name"))
         a, b = st.columns(2)
@@ -53,7 +55,7 @@ def render(page: Page, geocoder):
                             help="Used for perennial winter survival only, never to set sowing dates.")
         zone_source = st.text_input("Zone source (required if a zone is entered)", g.zone_source or "",
                                     key=page.key("g_zone_src"), placeholder="e.g. USDA Plant Hardiness Zone Map lookup")
-        if st.form_submit_button("Save garden"):
+        if st.form_submit_button("Save garden", type="primary"):
             run_safely(lambda: page.service.update_garden(
                 page.user_id, page.gid, display_name=name, city=city, region=region, country=country,
                 postal_code=optional(postal), timezone=tz.strip() or g.timezone, zone_label=optional(zone),
@@ -61,7 +63,7 @@ def render(page: Page, geocoder):
     st.caption("Forecast location: " + ("set" if g.has_coordinates else "not set — weather is off for this garden"))
     location_search(page, geocoder)
 
-    st.subheader("Packet list import")
+    html(section("Packet list import", "seed"))
     entries = load_initial_inventory()["entries"]
     st.write(f"Adds the {len(entries)} candidate seed packets transcribed from your photos to **{g.display_name}**. "
              "Uncertain names are flagged *Needs review*. Nothing is planted and no tasks are created. "
@@ -71,7 +73,7 @@ def render(page: Page, geocoder):
         result = import_initial_inventory(page.service, page.user_id, page.gid)
         notify(f"Imported {result['added']} seed record(s); {result['skipped']} already present.")
 
-    st.subheader("Add another garden")
+    html(section("Add another garden", "sprout"))
     with st.form("vd_add_garden", clear_on_submit=True):
         new_name = st.text_input("Garden name", placeholder="e.g. Mom's Garden", key="vd_new_garden_name")
         new_city = st.text_input("City (optional)", key="vd_new_garden_city")
@@ -81,7 +83,7 @@ def render(page: Page, geocoder):
                 st.session_state["vd_garden_next"] = garden.id  # applied before the selector renders
                 notify(f"Created {garden.display_name}.")
 
-    st.subheader("Sample gardens")
+    html(section("Sample gardens", "spark"))
     st.caption("Adds two sample gardens (Richmond and Norfolk, VA) alongside yours. Your gardens are not changed.")
     if st.button("Load sample gardens", key="vd_demo_settings"):
         from datetime import date
@@ -90,10 +92,10 @@ def render(page: Page, geocoder):
         made = load_demo(page.service, page.user_id, date.today())
         if made:
             st.session_state["vd_garden_next"] = made[0].id
-            notify("Sample gardens added. Switch gardens with the selector at the top.")
+            notify("Sample gardens added. Switch gardens with the selector in the sidebar.")
         notify("Sample gardens are already loaded.", "info")
 
-    st.subheader("Privacy")
+    html(section("Privacy", "alert"))
     st.caption("Data is stored on this computer in a local SQLite database. Photos are kept in a per-garden "
                "folder and are only shown inside that garden. Sign-in and sharing with family members are planned "
                "for a later phase.")

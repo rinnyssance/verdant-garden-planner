@@ -128,6 +128,10 @@ Summary: 12/12 scenarios matched expected advice; 12/12 passed all guardrails (d
 
 In the running app with the live Open-Meteo forecast for a Richmond, VA test location on 2026-11-16 (low 35 °F), the Dashboard showed one *Watch* advisory for outdoor basil, none for kale or the indoor microgreens, and a grow-light *insufficient data* item.
 
+## Interface design
+
+A botanical field-journal look built on Streamlit with custom CSS (`verdant/ui/theme.py`): forest, sage, ivory and terracotta palette; Fraunces serif headings with Inter for the interface; a sidebar holding the garden selector and navigation (it collapses into a menu on phones); and card layouts for plants, seeds, spaces, tasks and journal entries. Plant and seed cards show **your own journal or packet photos** when they exist. Otherwise they show labelled line illustrations chosen by crop category, never stock photos that could be mistaken for your plants. Weather icons are derived only from the provider's rain-chance and sunshine numbers.
+
 ## Design decisions and trade-offs
 
 - **Adapter over rewrite.** Garden tasks run through the unmodified PawPal scheduler, so 29 existing tests still guard the core rules. Cost: plantings/spaces are mapped onto PawPal's `Pet` grouping, which is slightly awkward internally.
