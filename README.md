@@ -43,7 +43,7 @@ flowchart LR
 | Scheduling | `verdant/scheduling/pawpal_adapter.py` | One garden → one PawPal `Owner`; GardenTask ↔ PawPal `Task` with the same ID. Validation, recurrence, overlaps and plans come from the original code |
 | Persistence | `verdant/persistence/` | `Repository` interface, SQLite implementation, SQL migration `001_initial.sql` |
 | Services | `verdant/services/` | `GardenService` (all reads/writes, access checks, garden scope), seed import, weather, rule engine, photo validation |
-| UI | `verdant_app.py`, `verdant/ui/` | Dashboard, Seed Library, My Plants, Garden Spaces, Calendar, Field Journal, Settings; persistent garden switcher |
+| UI | `verdant_app.py`, `verdant/ui/` | Overview, My Plants, Seed Library, Garden Spaces, Calendar, Field Journal, Settings; sidebar navigation with garden selector |
 
 ## Setup
 
@@ -62,7 +62,7 @@ python -m streamlit run verdant_app.py
 
 macOS/Linux: `source .venv/bin/activate`. No API key is needed: Open-Meteo is free for non-commercial use. To run with no network at all, set `VERDANT_WEATHER=offline` (weather then shows as unavailable; nothing is invented). Other settings are in [.env.example](.env.example). Data is stored in `data/verdant.db` (git-ignored). The original PawPal+ app still runs with `python -m streamlit run app.py`.
 
-**Quick look:** click **Load sample gardens** (start screen, or Settings once gardens exist), then Dashboard → *Check weather & advice*. **First run with your own data:** create your gardens → Settings → search your city → *Use this location* → (optionally) import the packet list into your own garden → add growing spaces → start plantings from the Seed Library → Dashboard → *Check weather & advice*.
+**Quick look:** click **Load sample gardens** (start screen, or Settings once gardens exist), then Overview → *Check weather & advice*. **First run with your own data:** create your gardens → Settings → search your city → *Use this location* → (optionally) import the packet list into your own garden → add growing spaces → start plantings from the Seed Library → Overview → *Check weather & advice*.
 
 ## Deploy (Streamlit Community Cloud)
 
@@ -126,7 +126,7 @@ Kale in the same bed gets no frost alert (frost-tolerant), and the indoor shelf 
 Summary: 12/12 scenarios matched expected advice; 12/12 passed all guardrails (deterministic, no automatic task changes, evidence present, unknowns stated).
 ```
 
-In the running app with the live Open-Meteo forecast for a Richmond, VA test location on 2026-11-16 (low 35 °F), the Dashboard showed one *Watch* advisory for outdoor basil, none for kale or the indoor microgreens, and a grow-light *insufficient data* item.
+In the running app with the live Open-Meteo forecast for a Richmond, VA test location on 2026-11-16 (low 35 °F), the dashboard (now Overview) showed one *Watch* advisory for outdoor basil, none for kale or the indoor microgreens, and a grow-light *insufficient data* item.
 
 ## Interface design
 
